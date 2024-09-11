@@ -1,4 +1,4 @@
-package com.hmdp.entity;
+package com.hmdp.dto.entity;
 
 import lombok.Data;
 

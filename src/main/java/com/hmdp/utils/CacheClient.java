@@ -3,7 +3,6 @@ package com.hmdp.utils;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.hmdp.entity.Shop;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -49,13 +48,17 @@ public class CacheClient {
             , Function<ID,R> callBack,Long time ,TimeUnit unit){
         String key = KeyPrefix + id;
         String json = stringRedisTemplate.opsForValue().get(key);
+        // 判断是否存在
         if(StrUtil.isNotBlank(json)){
            return JSONUtil.toBean(json,type);
         }
+        // 不存在的话判断判断是否为“ ”，为的话说明这个值是数据库没有的，直接返回null
         if(json!=null){
             return null;
         }
+        // 为null【说明redis没有】，则根据id查数据库
         R r = callBack.apply(id);
+        // 数据库没有，则将当前值放入缓存中，以便下次再遇到的话可以直接返回null，有的话直接存入缓存中
         if(r==null){
             stringRedisTemplate.opsForValue().set(key,"",CACHE_NULL_TTL,TimeUnit.MINUTES);
             return null;

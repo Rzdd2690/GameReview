@@ -3,7 +3,7 @@ local userId = ARGV[2]
 local orderId = ARGV[3]
 
 -- 2.数据key
--- 2.1.库存key
+-- 2.1.库存key lua脚本中拼接字符串用 .. 拼接而不是用 +
 local stockKey = 'seckill:stock:' .. voucherId
 -- 2.2.订单key
 local orderKey = 'seckill:order:' .. voucherId

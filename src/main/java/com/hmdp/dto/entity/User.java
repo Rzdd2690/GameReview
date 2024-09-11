@@ -1,4 +1,4 @@
-package com.hmdp.entity;
+package com.hmdp.dto.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -10,19 +10,12 @@ import lombok.experimental.Accessors;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-/**
- * <p>
- * 
- * </p>
- *
- * @author 虎哥
- * @since 2021-12-22
- */
+
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("tb_follow")
-public class Follow implements Serializable {
+@TableName("tb_user")
+public class User implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -33,19 +26,34 @@ public class Follow implements Serializable {
     private Long id;
 
     /**
-     * 用户id
+     * 手机号码
      */
-    private Long userId;
+    private String phone;
 
     /**
-     * 关联的用户id
+     * 密码，加密存储
      */
-    private Long followUserId;
+    private String password;
+
+    /**
+     * 昵称，默认是随机字符
+     */
+    private String nickName;
+
+    /**
+     * 用户头像
+     */
+    private String icon = "";
 
     /**
      * 创建时间
      */
     private LocalDateTime createTime;
+
+    /**
+     * 更新时间
+     */
+    private LocalDateTime updateTime;
 
 
 }

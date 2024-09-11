@@ -1,15 +1,21 @@
 package com.hmdp;
 
-import com.hmdp.entity.Shop;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.dto.entity.Shop;
+import com.hmdp.dto.entity.ShopType;
+import com.hmdp.mapper.ShopTypeMapper;
 import com.hmdp.service.IShopService;
 import com.hmdp.utils.CacheClient;
 import com.hmdp.utils.RedisIdWorker;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.test.annotation.Rollback;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import static com.hmdp.utils.RedisConstants.CACHE_SHOP_KEY;
 
 @SpringBootTest
-class HmDianPingApplicationTests {
+class HmDianPingApplicationTests extends ServiceImpl<ShopTypeMapper, ShopType> {
     @Resource
     CacheClient cacheClient;
     @Resource
@@ -51,4 +57,17 @@ class HmDianPingApplicationTests {
         long end = System.currentTimeMillis();
         System.out.println("time = " + (end - begin));
     }
+
+    @Test
+    @Transactional
+    @Rollback(value = false)
+    // Spring 自动提供了@Rollback注解并置为true（无论方法是否抛出异常（检查异常和非检查异常，事务都会回滚））
+    public void method1() throws FileNotFoundException {//抛出检查异常
+        ShopType shopType = new ShopType();
+        shopType.setName("123木头人");
+        shopType.setSort(100);
+        save(shopType);
+        FileInputStream fis = new FileInputStream("D://a.txt");
+    }
+
 }

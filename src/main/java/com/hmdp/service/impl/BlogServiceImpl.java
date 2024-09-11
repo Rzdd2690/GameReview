@@ -1,16 +1,13 @@
 package com.hmdp.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.http.useragent.OS;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
-import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
-import com.hmdp.entity.Blog;
-import com.hmdp.entity.Follow;
-import com.hmdp.entity.User;
+import com.hmdp.dto.entity.Blog;
+import com.hmdp.dto.entity.Follow;
+import com.hmdp.dto.entity.User;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -20,7 +17,6 @@ import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -29,14 +25,7 @@ import java.util.stream.Collectors;
 import static com.hmdp.utils.RedisConstants.BLOG_LIKED_KEY;
 import static com.hmdp.utils.RedisConstants.FEED_KEY;
 
-/**
- * <p>
- *  服务实现类
- * </p>
- *
- * @author 虎哥
- * @since 2021-12-22
- */
+
 @Service
 public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IBlogService {
     @Autowired
@@ -46,6 +35,11 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     @Autowired
     StringRedisTemplate stringRedisTemplate;
 
+    /**
+     * 查询点赞热门榜
+     * @param current
+     * @return
+     */
     @Override
     public Result queryHotBlog(Integer current) {
         // 根据用户查询
@@ -73,7 +67,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         Long id = blog.getId();
         // 2.判断是否点赞
         String key = BLOG_LIKED_KEY + blog.getId().toString();
-        // 判断当前redis是否存在点赞的缓存，点了赞就有缓存，有的话，说明点过了
+        // 判断当前redis是否存在缓存，点了赞就有缓存，有的话，说明点过了
         Double score = stringRedisTemplate.opsForZSet().score(key, id.toString());
         // 根据返回值判断当前博客被当前用户是否点赞,是否被点赞 该属性没有在数据表中真是存在，而是业务需要
         blog.setIsLike(score!=null);
@@ -97,6 +91,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             return Result.fail("笔记不存在");
         }
         queryBlogUser(blog);
+        // 判断是否点赞
         isLike(blog);
         return Result.ok(blog);
     }
@@ -165,6 +160,11 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         return Result.ok(userDTOS);
     }
 
+    /**
+     * 保存并发送（给自己的粉丝的收件箱，即发给粉丝id的缓存中）
+     * @param blog
+     * @return
+     */
     @Override
     public Result saveWithPush(Blog blog) {
         // 获取登录用户
@@ -186,39 +186,45 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             return Result.ok(blog.getId());
     }
 
+    /**
+     *
+     * @param max
+     * @param offset
+     * @return
+     */
     @Override
     public Result queryBlogOfFollow(Long max, Integer offset) {
-        Long userId = UserHolder.getUser().getId();
-        String key = FEED_KEY + userId;
-        Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet().
-                reverseRangeByScoreWithScores(key, 0, max, offset, 2);
-        if(typedTuples.isEmpty()||typedTuples == null){
-            return Result.ok();
-        }
-        List<Long> ids = new ArrayList<>(typedTuples.size());
-        Long minTime = 0L;
-        int OSet = 1;
-        // 遍历获取博客ID号以及对应的时间戳
-            for (ZSetOperations.TypedTuple<String> typedTuple : typedTuples) {
-                ids.add(Long.valueOf(typedTuple.getValue()));
-                Long time = typedTuple.getScore().longValue();
-                if (time == minTime) {
-                    OSet++;
-                } else {
-                    minTime = time;
-                    OSet = 1;
-                }
-            }
-        String idStr = StrUtil.join(",", ids);
-        List<Blog> blogs = query().in("id", ids).last("ORDER BY FIELD(id," + idStr + ")").list();
-        for (Blog blog : blogs) {
-            queryBlogUser(blog);
-            isLike(blog);
-        }
-        ScrollResult r = new ScrollResult();
-        r.setList(blogs);
-        r.setOffset(OSet);
-        r.setMinTime(minTime);
-        return Result.ok(r);
+//        Long userId = UserHolder.getUser().getId();
+//        String key = FEED_KEY + userId;
+//        Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet().
+//                reverseRangeByScoreWithScores(key, 0, max, offset, 2);
+//        if(typedTuples.isEmpty()||typedTuples == null){
+//            return Result.ok();
+//        }
+//        List<Long> ids = new ArrayList<>(typedTuples.size());
+//        Long minTime = 0L;
+//        int OSet = 1;
+//        // 遍历获取博客ID号以及对应的时间戳
+//            for (ZSetOperations.TypedTuple<String> typedTuple : typedTuples) {
+//                ids.add(Long.valueOf(typedTuple.getValue()));
+//                Long time = typedTuple.getScore().longValue();
+//                if (time == minTime) {
+//                    OSet++;
+//                } else {
+//                    minTime = time;
+//                    OSet = 1;
+//                }
+//            }
+//        String idStr = StrUtil.join(",", ids);
+//        List<Blog> blogs = query().in("id", ids).last("ORDER BY FIELD(id," + idStr + ")").list();
+//        for (Blog blog : blogs) {
+//            queryBlogUser(blog);
+//            isLike(blog);
+//        }
+//        ScrollResult r = new ScrollResult();
+//        r.setList(blogs);
+//        r.setOffset(OSet);
+//        r.setMinTime(minTime);
+        return Result.ok();
     }
 }

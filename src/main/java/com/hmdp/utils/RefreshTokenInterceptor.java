@@ -36,6 +36,7 @@ public class RefreshTokenInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         //1.获取请求头中的token
         String token = request.getHeader("authorization");
+ // 如果没有token，直接放行，让下一个拦截器进行拦截
         if (StrUtil.isBlank(token)){
             return true;
         }
@@ -44,13 +45,17 @@ public class RefreshTokenInterceptor implements HandlerInterceptor {
         String tokenKey = LOGIN_USER_KEY + token;
         Map<Object, Object> userMap = stringRedisTemplate.opsForHash().entries(tokenKey);
         //3.判断用户是否存在
+// 用户不存在，直接放行，给下一个拦截器进行放行
         if(userMap.isEmpty()){
             return true;
         }
+// 用户存在，则转换为UserDTO（脱敏），并保存到ThreadLocal中，下一个拦截器通过判断ThreadLocal中有无数据，可以判断这个请求是否需要放行
         //将查询到的Hash数据转换为UserDTO数据
         UserDTO userDTO = BeanUtil.fillBeanWithMap(userMap, new UserDTO() ,false);
         //5.存在则保存到ThreadLocal中
         saveUser(userDTO);
+// 最后别忘了刷新token有效期，这也是我们设置两个拦截器的意义，
+// 第一个拦截器是拦截所有的请求，并把当前token的信息保存到Threadlocal，同时刷新有效期
         // 刷新token有效期
         stringRedisTemplate.expire(tokenKey,LOGIN_USER_TTL, TimeUnit.MINUTES);
         return true;

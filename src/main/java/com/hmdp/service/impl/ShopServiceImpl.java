@@ -1,23 +1,16 @@
 package com.hmdp.service.impl;
 
-import cn.hutool.core.util.StrUtil;
-import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
-import com.hmdp.entity.Shop;
+import com.hmdp.dto.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
 import com.hmdp.utils.CacheClient;
-import com.hmdp.utils.RedisData;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.time.LocalDateTime;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static com.hmdp.utils.RedisConstants.*;
@@ -38,8 +31,8 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     CacheClient cacheClient;
     @Override
     public Result queryById(Long id) throws InterruptedException {
-        //Shop shop = cacheClient.queryWithPassThrough(CACHE_SHOP_KEY, id,Shop.class,
-        //        this::getById,CACHE_NULL_TTL,TimeUnit.MINUTES);
+        //     Shop shop = cacheClient.queryWithPassThrough(CACHE_SHOP_KEY, id,Shop.class,
+        //     this::getById,CACHE_NULL_TTL,TimeUnit.MINUTES);
     Shop shop = cacheClient.queryWithPassThrough(CACHE_SHOP_KEY,id,Shop.class,
             this::getById,CACHE_SHOP_TTL,TimeUnit.SECONDS);
         // 缓存穿透
@@ -137,7 +130,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
                 return QueryWithMutex(id);
             }
             // 拿到了锁还是要重新检查一下缓存是否存在，防止一种情况：
-            // 这边刷新了缓存释放了锁，那边又拿到了锁，这样会对数据库进行二次访问
+            // 这边刷新了缓存释放了锁，那边又拿到了锁,对于同一个数据，就不需要再次进行缓存重构了
             if(StrUtil.isNotBlank(stringRedisTemplate.opsForValue().get(CACHE_SHOP_KEY+id))){
                 String shopJson2 = stringRedisTemplate.opsForValue().get(CACHE_SHOP_KEY+id);
                 return JSONUtil.toBean(shopJson2, Shop.class);
@@ -164,8 +157,6 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
     /**
      * 缓存穿透，即，如果请求的是不存在的东西，直接返回null，同时将这个null缓存起来
-     * @param
-     * @return
      */
     /*public Shop QueryWithPassThrough(Long id){
         String key = CACHE_SHOP_KEY +"id";
@@ -178,7 +169,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             // 存在的话将查询到的Json对象转化为对象，并返回
           return JSONUtil.toBean(shopJson,Shop.class);
         }
-        //命中的是否为空值 ”“，为空值说明这个值已经缓存过了，直接返回，不需要查数据库
+        //命中的是否为空值 "",为空值说明这个值已经缓存过了,直接返回,不需要查数据库
         if (shopJson!=null){
             return null;
         }

@@ -8,20 +8,22 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
-import com.hmdp.entity.User;
+import com.hmdp.dto.entity.ShopType;
+import com.hmdp.dto.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RegexUtils;
-import com.hmdp.utils.SystemConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import static com.hmdp.utils.RedisConstants.*;
@@ -85,12 +87,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         String tokenKey = LOGIN_USER_KEY+token;
         //4.4 存储进Redis
         stringRedisTemplate.opsForHash().putAll(tokenKey,userMap);
-        //4.5 设置有效期
+        //4.5 设置有效.
         stringRedisTemplate.expire(tokenKey,LOGIN_USER_TTL,TimeUnit.MINUTES);
-        //4.6 返回token
+        //4.6 返回token给前端
         return Result.ok(token);
     }
-
     private User createUserWithPhone(String phone) {
         User user = new User();
         user.setPhone(phone);
@@ -98,5 +99,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         save(user);
         return user;
     }
+
 
 }
