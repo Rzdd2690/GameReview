@@ -81,6 +81,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
            user = createUserWithPhone(phone);
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
         //4.3 将用户对象转换为Hash
+        // hutool包下的转换类实现了自定义转换方式，CopyOptions
         Map<String, Object> userMap = BeanUtil.beanToMap(userDTO,new HashMap<>() ,
                 CopyOptions.create().setIgnoreNullValue(true)
                         .setFieldValueEditor((fileName , fileValue)-> fileValue.toString()));

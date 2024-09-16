@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.dto.entity.Blog;
 import com.hmdp.dto.entity.Follow;
@@ -17,6 +18,7 @@ import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -35,6 +37,26 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
     @Autowired
     StringRedisTemplate stringRedisTemplate;
 
+    /**
+     * 根据当前用户id，查询他发过的笔记
+     * @param current
+     * @param id
+     * @return
+     */
+    @Override
+    public Result queryOthersBlog(Integer current, Long id) {
+        User user = userService.getById(id);
+        if(user==null){
+            return Result.fail("用户不存在");
+        }
+        Page<Blog> page = query()
+                .eq( "user_id", user.getId())
+                .orderByDesc("create_time")
+                .page(new Page<>(current, SystemConstants.MAX_PAGE_SIZE));
+        // 获取当前页数据
+        List<Blog> records = page.getRecords();
+        return Result.ok(records);
+    }
     /**
      * 查询点赞热门榜
      * @param current
@@ -111,6 +133,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
           // 2.判断是否点赞
         String key = BLOG_LIKED_KEY + id.toString();
         // 判断当前redis是否存在点赞的缓存，点了赞就有缓存，有的话，说明点过了
+        // 这里是直接查它的分数，分数不存在会返回null
         Double isMember = stringRedisTemplate.opsForZSet().score(key, id.toString());
         if (isMember==null) {
             //3.如果未点赞，可以点赞
@@ -194,37 +217,38 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
      */
     @Override
     public Result queryBlogOfFollow(Long max, Integer offset) {
-//        Long userId = UserHolder.getUser().getId();
-//        String key = FEED_KEY + userId;
-//        Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet().
-//                reverseRangeByScoreWithScores(key, 0, max, offset, 2);
-//        if(typedTuples.isEmpty()||typedTuples == null){
-//            return Result.ok();
-//        }
-//        List<Long> ids = new ArrayList<>(typedTuples.size());
-//        Long minTime = 0L;
-//        int OSet = 1;
-//        // 遍历获取博客ID号以及对应的时间戳
-//            for (ZSetOperations.TypedTuple<String> typedTuple : typedTuples) {
-//                ids.add(Long.valueOf(typedTuple.getValue()));
-//                Long time = typedTuple.getScore().longValue();
-//                if (time == minTime) {
-//                    OSet++;
-//                } else {
-//                    minTime = time;
-//                    OSet = 1;
-//                }
-//            }
-//        String idStr = StrUtil.join(",", ids);
-//        List<Blog> blogs = query().in("id", ids).last("ORDER BY FIELD(id," + idStr + ")").list();
-//        for (Blog blog : blogs) {
-//            queryBlogUser(blog);
-//            isLike(blog);
-//        }
-//        ScrollResult r = new ScrollResult();
-//        r.setList(blogs);
-//        r.setOffset(OSet);
-//        r.setMinTime(minTime);
+        Long userId = UserHolder.getUser().getId();
+        String key = FEED_KEY + userId;
+        Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet().
+                reverseRangeByScoreWithScores(key, 0, max, offset, 2);
+        if(typedTuples.isEmpty()||typedTuples == null){
+            return Result.ok();
+        }
+        List<Long> ids = new ArrayList<>(typedTuples.size());
+        Long minTime = 0L;
+        int OSet = 1;
+        // 遍历获取博客ID号以及对应的时间戳
+            for (ZSetOperations.TypedTuple<String> typedTuple : typedTuples) {
+                ids.add(Long.valueOf(typedTuple.getValue()));
+                Long time = typedTuple.getScore().longValue();
+                if (time == minTime) {
+                    OSet++;
+                } else {
+                    minTime = time;
+                    OSet = 1;
+                }
+            }
+        String idStr = StrUtil.join(",", ids);
+        List<Blog> blogs = query().in("id", ids).last("ORDER BY FIELD(id," + idStr + ")").list();
+        for (Blog blog : blogs) {
+            queryBlogUser(blog);
+            isLike(blog);
+        }
+        ScrollResult r = new ScrollResult();
+        r.setList(blogs);
+        r.setOffset(OSet);
+        r.setMinTime(minTime);
         return Result.ok();
     }
+
 }

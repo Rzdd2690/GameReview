@@ -45,7 +45,7 @@ public class BlogController {
     }
 
     /**
-     * 根据用户ID查询博客明细
+     * 根据(当前登录者)用户ID查询博客明细
      * @param current
      * @return
      */
@@ -61,6 +61,13 @@ public class BlogController {
         return Result.ok(records);
     }
 
+    /**
+     * 查看其他用户博客
+     */
+    @GetMapping("/of/user")
+    public Result queryOthersBlog(@RequestParam(value = "current",defaultValue = "1")Integer current,@RequestParam(value = "id")Long id){
+        return  blogService.queryOthersBlog(current,id);
+    }
     /**
      *查询热门博客
      * @param current
@@ -92,10 +99,10 @@ public class BlogController {
     }
 
 
-//    @GetMapping("/of/follow")
-//    public Result queryBlogOfFollow(
-//            @RequestParam("lastId") Long max,
-//            @RequestParam(value = "offset", defaultValue = "0") Integer offset){
-//        return blogService.queryBlogOfFollow(max,offset);
-//    }
+    @GetMapping("/of/follow")
+    public Result queryBlogOfFollow(
+            @RequestParam("lastId") Long max,
+            @RequestParam(value = "offset", defaultValue = "0") Integer offset){
+        return blogService.queryBlogOfFollow(max,offset);
+    }
 }

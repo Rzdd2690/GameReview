@@ -31,6 +31,12 @@ public class FollowController {
     public Result orNot(@PathVariable("id") Long id){
         return followService.orNot(id);
     }
+
+    /**
+     * 查看共同关注
+     * @param id
+     * @return
+     */
     @GetMapping("/common/{id}")
     public Result commonAttention(@PathVariable("id")Long id){
         return followService.commonAttention(id);
